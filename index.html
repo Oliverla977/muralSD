@@ -3,18 +3,25 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AR.js Octágonos Interactivos</title>
+  <title>AR.js SAP Módulos</title>
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <!-- AR.js para A-Frame -->
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   <style>
     body { margin: 0; overflow: hidden; }
-    .hint { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 12px; font-family: system-ui, sans-serif; background: rgba(0,0,0,.55); color: #fff; text-align: center; z-index: 10; }
+    .hint {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      padding: 10px 12px; font-family: system-ui, sans-serif;
+      background: rgba(0,0,0,.55); color: #fff;
+      text-align: center; z-index: 10;
+    }
   </style>
 </head>
 <body>
-  <div class="hint">Apunta al marcador <b>Hiro</b>. Toca un octágono para centrarlo y agrandarlo.</div>
+  <div class="hint">
+    Apunta al marcador de tu logo. Toca un octágono para centrarlo y agrandarlo.
+  </div>
 
   <a-scene
     vr-mode-ui="enabled: false"
@@ -22,60 +29,80 @@
     embedded
     arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
   >
-    <!-- Luz suave para resaltar los bordes -->
+    <!-- Luces -->
     <a-entity light="type: ambient; intensity: 0.8"></a-entity>
     <a-entity light="type: directional; intensity: 0.6" position="1 1 0"></a-entity>
 
-    <!-- Marcador Hiro clásico -->
-    <a-marker preset="hiro" id="marker">
-      <!-- Contenedor de todos los octágonos -->
+    <!-- Marcador personalizado -->
+    <a-marker type="pattern" url="sap-marker.patt" id="marker">
       <a-entity id="octagon-group" position="0 0 0"></a-entity>
     </a-marker>
 
-    <!-- Cámara y cursor basado en el puntero (soporta toque/pulsación) -->
+    <!-- Cámara y cursor -->
     <a-entity camera look-controls>
       <a-cursor rayOrigin="mouse"></a-cursor>
     </a-entity>
   </a-scene>
 
   <script>
-    // Utilidad: crear un "octágono" como cilindro de 8 lados, muy delgado
-    function createOctagon(id, position, color, scale = {x:1, y:1, z:1}) {
-      const e = document.createElement('a-entity');
-      e.setAttribute('id', id);
-      e.classList.add('octagon');
-      e.setAttribute('geometry', {
+    // Crear octágono con texto SAP
+    function createOctagon(id, position, color, label, scale = {x:1, y:1, z:1}) {
+      const wrapper = document.createElement('a-entity');
+      wrapper.setAttribute('position', position);
+
+      const oct = document.createElement('a-entity');
+      oct.setAttribute('geometry', {
         primitive: 'cylinder',
         radius: 0.28,
         height: 0.04,
         segmentsRadial: 8
       });
-      e.setAttribute('material', { color, metalness: 0.2, roughness: 0.5 });
-      e.setAttribute('position', position);
-      e.setAttribute('rotation', '0 0 0');
-      e.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
-      // Pequeña sombra de borde
-      e.setAttribute('shadow', 'cast: true; receive: true');
-      return e;
+      oct.setAttribute('material', { color, metalness: 0.2, roughness: 0.5 });
+      oct.setAttribute('rotation', '0 0 0');
+      oct.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
+      oct.classList.add('octagon');
+      oct.setAttribute('id', id);
+      wrapper.appendChild(oct);
+
+      const text = document.createElement('a-text');
+      text.setAttribute('value', label);
+      text.setAttribute('align', 'center');
+      text.setAttribute('position', '0 0.35 0');
+      text.setAttribute('scale', '1 1 1');
+      text.setAttribute('color', '#000');
+      wrapper.appendChild(text);
+
+      return wrapper;
     }
 
     const group = document.getElementById('octagon-group');
 
-    // Colores agradables (10 + 1 central)
+    // Colores
     const palette = [
       '#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#B28DFF',
       '#FF8FAB', '#F6BD60', '#84DCC6', '#95A6FF', '#F7A072', '#7AD9F5'
     ];
 
-    // Octágono central inicial
-    const centerId = 'octagon-center';
-    const center = createOctagon(centerId, '0 0.1 0', palette[10], {x:1.7, y:1.7, z:1.7});
+    // Módulos SAP
+    const modules = [
+      "SAP PM", "SAP PP", "SAP CO", "SAP MM", "SAP FI",
+      "SAP SD", "SAP HCM", "SAP QM", "SAP PS", "SAP BW"
+    ];
+
+    // Octágono central
+    const center = createOctagon(
+      'octagon-center',
+      '0 0.1 0',
+      palette[10],
+      'SAP',
+      {x:1.7, y:1.7, z:1.7}
+    );
     center.dataset.isCenter = 'true';
     group.appendChild(center);
 
-    // Crear 10 octágonos alrededor en círculo
-    const R = 1.35; // radio del anillo
-    const Y = 0.1;  // altura
+    // Crear 10 octágonos alrededor
+    const R = 1.6;
+    const Y = 0.1;
     const count = 10;
 
     for (let i = 0; i < count; i++) {
@@ -83,13 +110,18 @@
       const x = R * Math.cos(theta);
       const z = R * Math.sin(theta);
       const id = `octagon-${i+1}`;
-      const oct = createOctagon(id, `${x.toFixed(3)} ${Y} ${z.toFixed(3)}`, palette[i], {x:1, y:1, z:1});
-      // Guardar su posición original para intercambios futuros
+      const oct = createOctagon(
+        id,
+        `${x.toFixed(3)} ${Y} ${z.toFixed(3)}`,
+        palette[i],
+        modules[i],
+        {x:1, y:1, z:1}
+      );
       oct.dataset.originalPosition = `${x} ${Y} ${z}`;
       group.appendChild(oct);
     }
 
-    // Animar transición suave
+    // Animación suave
     function animateTo(entity, toPos, toScale, dur = 350) {
       entity.setAttribute('animation__pos', {
         property: 'position', to: toPos, dur, easing: 'easeInOutQuad'
@@ -103,36 +135,34 @@
       const currentCenter = group.querySelector('[data-is-center="true"]');
       if (!currentCenter || target === currentCenter) return;
 
-      // Posiciones/escala
       const targetOriginalPos = target.getAttribute('position');
-      const centerOriginalPos = currentCenter.getAttribute('position');
+      const targetOriginalSlot = target.dataset.originalPosition ||
+        `${targetOriginalPos.x} ${targetOriginalPos.y} ${targetOriginalPos.z}`;
 
-      const targetOriginalSlot = target.dataset.originalPosition || `${targetOriginalPos.x} ${targetOriginalPos.y} ${targetOriginalPos.z}`;
       const centerScaleSmall = '1 1 1';
       const bigScale = '1.7 1.7 1.7';
 
-      // 1) Mover el target al centro y agrandarlo
+      // mover target al centro
       animateTo(target, '0 0.1 0', bigScale);
       target.dataset.isCenter = 'true';
 
-      // 2) Mover el que estaba al centro hacia el lugar original del target y hacerlo pequeño
+      // mover el centro al slot original del target
       animateTo(currentCenter, targetOriginalSlot, centerScaleSmall);
       delete currentCenter.dataset.isCenter;
-
-      // 3) Actualizar data-originalPosition: el que sale al anillo hereda el slot del target
       currentCenter.dataset.originalPosition = targetOriginalSlot;
     }
 
-    // Interacción: tocar/click sobre cualquier octágono del anillo
+    // Interacción
     group.addEventListener('click', (ev) => {
       const t = ev.target;
       if (!t.classList || !t.classList.contains('octagon')) return;
       if (t.dataset.isCenter === 'true') return;
-      swapToCenter(t);
+      swapToCenter(t.parentNode); // mover wrapper
     });
 
-    // Evitar que el tap arrastre la escena en móviles
-    document.body.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
+    document.body.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+    }, { passive: false });
   </script>
 </body>
 </html>
